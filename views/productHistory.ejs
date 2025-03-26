@@ -1,0 +1,30 @@
+<!-- views/productHistory.ejs -->
+<h2>Stok Geçmişi: <%= product.productName %></h2>
+<table>
+  <thead>
+    <tr>
+      <th>Tarih</th>
+      <th>Stok Miktarı</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% if (histories.length === 0) { %>
+      <tr>
+        <td colspan="2" style="text-align: center; padding: 20px; color: #888;">
+          Stok geçmişi bulunamadı.
+        </td>
+      </tr>
+    <% } else { %>
+      <% histories.forEach(history => { %>
+        <tr>
+          <td><%= history.recordedAt.toLocaleString() %></td>
+          <td><%= history.stock %></td>
+        </tr>
+      <% }); %>
+    <% } %>
+  </tbody>
+</table>
+<div style="margin-top: 20px;">
+  <a href="/stock/<%= product.id %>">Ürün Detayına Geri Dön</a> | 
+  <a href="/stock">Stok Sayfasına Geri Dön</a>
+</div>

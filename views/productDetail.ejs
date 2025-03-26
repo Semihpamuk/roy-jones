@@ -1,0 +1,19 @@
+<!-- views/productDetail.ejs -->
+<h2>Ürün Detayı</h2>
+<div style="background-color: #2c2c2c; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);">
+  <p><strong>Barkod:</strong> <%= product.barcode %></p>
+  <p><strong>Ürün İsmi:</strong> <%= product.productName %></p>
+  <p><strong>Model Kodu:</strong> <%= product.productMainId %></p>
+  <p><strong>Renk:</strong> <%= product.color %></p>
+  <p><strong>Beden:</strong> <%= product.size %></p>
+  <p><strong>Stok:</strong> <%= product.stock %></p>
+  <p><strong>Ürün Resmi:</strong> 
+    <% if(product.image) { %>
+      <img src="<%= product.image %>" alt="<%= product.productName %>" width="100">
+    <% } else { %>
+      N/A
+    <% } %>
+  </p>
+  <p><a href="/stock/<%= product.id %>/history">Stok Geçmişini Görüntüle</a></p>
+  <p><a href="/stock">Geri Dön</a></p>
+</div>

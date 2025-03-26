@@ -1,0 +1,190 @@
+<h2>Stok Yönetimi</h2>
+
+<form method="GET" action="/stock">
+  <input type="text" name="search" placeholder="Ara (barkod, isim, model, renk, beden)" value="<%= search || '' %>">
+  <button type="submit">Ara</button>
+</form>
+
+<nav>
+  <a href="/stock" class="<%= !filter ? 'active' : '' %>">Tüm Ürünler</a>
+  <a href="/stock?filter=zero" class="<%= filter === 'zero' ? 'active' : '' %>">Stoğu Sıfır Olanlar (Bugün)</a>
+  <a href="/stock?filter=oneToTen" class="<%= filter === 'oneToTen' ? 'active' : '' %>">Stoğu 1-10 Arası (Bugün)</a>
+  <a href="/stock?filter=todayZero" class="<%= filter === 'todayZero' ? 'active' : '' %>">Bugün Sıfıra Düşenler</a>
+  <a href="/stock?filter=todayOneToTen" class="<%= filter === 'todayOneToTen' ? 'active' : '' %>">Bugün 1-10'a Düşenler</a>
+  <a href="/stock?filter=weekZero" class="<%= filter === 'weekZero' ? 'active' : '' %>">Bu Hafta Sıfıra Düşenler</a>
+  <a href="/stock?filter=weekOneToTen" class="<%= filter === 'weekOneToTen' ? 'active' : '' %>">Bu Hafta 1-10'a Düşenler</a>
+  <a href="/stock?filter=monthZero" class="<%= filter === 'monthZero' ? 'active' : '' %>">Bu Ay Sıfıra Düşenler</a>
+  <a href="/stock?filter=monthOneToTen" class="<%= filter === 'monthOneToTen' ? 'active' : '' %>">Bu Ay 1-10'a Düşenler</a>
+  <a href="/stock?filter=highest" class="<%= filter === 'highest' ? 'active' : '' %>">En Çok Stoklu Ürünler</a>
+</nav>
+
+<div class="pdf-download">
+  <a href="/stock/download-pdf<% if (filter) { %>?filter=<%= filter %><% } %><% if (search) { %><%= filter ? '&' : '?' %>search=<%= search %><% } %>" class="btn">PDF Olarak İndir</a>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Barkod</th>
+      <th>Ürün İsmi</th>
+      <th>Model Kodu</th>
+      <th>Renk</th>
+      <th>Beden</th>
+      <th>Ürün Resmi</th>
+      <th>Stok</th>
+      <th>Detay</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% if (products.length === 0) { %>
+      <tr>
+        <td colspan="8" style="text-align: center; padding: 20px; color: #888;">
+          Ürün bulunamadı.
+        </td>
+      </tr>
+    <% } else { %>
+      <% products.forEach(product => { %>
+        <tr>
+          <td data-label="Barkod"><%= product.barcode %></td>
+          <td data-label="Ürün İsmi"><%= product.productName %></td>
+          <td data-label="Model Kodu"><%= product.productMainId %></td>
+          <td data-label="Renk"><%= product.color %></td>
+          <td data-label="Beden"><%= product.size %></td>
+          <td data-label="Ürün Resmi">
+            <% if(product.image) { %>
+              <img src="<%= product.image %>" alt="<%= product.productName %>" width="50">
+            <% } else { %>
+              N/A
+            <% } %>
+          </td>
+          <td data-label="Stok"><%= product.stock %></td>
+          <td data-label="Detay"><a href="/stock/<%= product.barcode %>">Detay</a></td>
+        </tr>
+      <% }); %>
+    <% } %>
+  </tbody>
+</table>
+
+<style>
+  h2 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+  form {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+  form input {
+    padding: 10px;
+    border: 1px solid #444;
+    border-radius: 5px;
+    background: #2a2a2a;
+    color: #fff;
+    font-size: 16px;
+    flex: 1;
+    max-width: 300px;
+  }
+  form button {
+    padding: 10px 20px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  form button:hover {
+    background: #2980b9;
+  }
+  nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  nav a {
+    padding: 10px 15px;
+    background: #2a2a2a;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background 0.3s;
+  }
+  nav a:hover, nav a.active {
+    background: #3498db;
+  }
+  .pdf-download {
+    margin: 20px 0;
+    width: 100%;
+  }
+  .btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background: #2ecc71;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background 0.3s;
+  }
+  .btn:hover {
+    background: #27ae60;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #2a2a2a;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  th, td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #444;
+  }
+  th {
+    background: #3498db;
+    color: #fff;
+    font-weight: 600;
+  }
+  td {
+    color: #ddd;
+  }
+  td a {
+    color: #3498db;
+    text-decoration: none;
+  }
+  td a:hover {
+    text-decoration: underline;
+  }
+  img {
+    border-radius: 5px;
+  }
+  @media (max-width: 768px) {
+    table, thead, tbody, th, td, tr {
+      display: block;
+    }
+    thead tr {
+      display: none;
+    }
+    tr {
+      margin-bottom: 15px;
+      border-bottom: 2px solid #444;
+    }
+    td {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      position: relative;
+      border: none;
+    }
+    td::before {
+      content: attr(data-label);
+      font-weight: bold;
+      color: #fff;
+    }
+  }
+</style>
