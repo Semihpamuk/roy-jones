@@ -1,7 +1,7 @@
 module.exports = (sequelize, DataTypes) => {
   const StockHistory = sequelize.define('StockHistory', {
     productId: {
-      type: DataTypes.STRING,
+      type: DataTypes.INTEGER, // STRING yerine INTEGER
       allowNull: false,
     },
     stock: {

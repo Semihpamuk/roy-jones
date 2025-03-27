@@ -1,5 +1,10 @@
 module.exports = (sequelize, DataTypes) => {
   const Product = sequelize.define('Product', {
+    id: {
+      type: DataTypes.STRING, // Varsayılan INTEGER yerine STRING
+      primaryKey: true,
+      allowNull: false,
+    },
     barcode: {
       type: DataTypes.STRING,
       allowNull: false,
