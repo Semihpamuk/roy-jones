@@ -16,8 +16,7 @@ app.use(
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],      imgSrc: ["'self'", "data:", "https://cdn.dsmcdn.com"],
       connectSrc: ["'self'"],
-      fontSrc: ["'self'"],
-      objectSrc: ["'none'"],
+      fontSrc: ["'self'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"], // Font dosyaları için      objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     },
   })

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs'); // Bu satırı ekleyin
 const { User } = require('../models');
 
 // GET /login: Giriş formunu render eder.
