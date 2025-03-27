@@ -21,17 +21,16 @@ const getTodayRange = () => {
 
 const getWeekRange = () => {
   const currentDate = new Date();
-  // Haftanın Pazartesi gününü bul (varsayılan olarak haftanın ilk günü Pazartesi)
-  const dayOfWeek = currentDate.getDay(); // 0: Pazar, 1: Pazartesi, ..., 6: Cumartesi
-  const diffToMonday = (dayOfWeek + 6) % 7; 
+  const dayOfWeek = currentDate.getDay();
+  const diffToMonday = (dayOfWeek + 6) % 7;
   const weekStart = new Date(currentDate);
   weekStart.setDate(currentDate.getDate() - diffToMonday);
   weekStart.setHours(0, 0, 0, 0);
-  
+
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
   weekEnd.setHours(23, 59, 59, 999);
-  
+
   return { start: weekStart, end: weekEnd };
 };
 
@@ -45,6 +44,7 @@ const getMonthRange = () => {
 };
 
 router.get('/', async (req, res) => {
+  console.log('Stock rotasına erişildi:', req.session); // Erişim logu
   const filter = req.query.filter;
   const search = req.query.search;
   let products = [];
@@ -95,9 +95,11 @@ router.get('/', async (req, res) => {
         if (histories.length < 2) return false;
         const latestHistory = histories[histories.length - 1];
         const previousHistory = histories[histories.length - 2];
-        return latestHistory.stock >= 1 &&
-               latestHistory.stock <= 10 &&
-               previousHistory.stock > 10;
+        return (
+          latestHistory.stock >= 1 &&
+          latestHistory.stock <= 10 &&
+          previousHistory.stock > 10
+        );
       });
     } else if (filter === 'todayZero') {
       const productsWithHistory = await Product.findAll({
@@ -131,9 +133,11 @@ router.get('/', async (req, res) => {
         if (histories.length < 2) return false;
         const latestHistory = histories[histories.length - 1];
         const previousHistory = histories[histories.length - 2];
-        return latestHistory.stock >= 1 &&
-               latestHistory.stock <= 10 &&
-               previousHistory.stock > 10;
+        return (
+          latestHistory.stock >= 1 &&
+          latestHistory.stock <= 10 &&
+          previousHistory.stock > 10
+        );
       });
     } else if (filter === 'weekZero') {
       const productsWithHistory = await Product.findAll({
@@ -167,9 +171,11 @@ router.get('/', async (req, res) => {
         if (histories.length < 2) return false;
         const latestHistory = histories[histories.length - 1];
         const previousHistory = histories[histories.length - 2];
-        return latestHistory.stock >= 1 &&
-               latestHistory.stock <= 10 &&
-               previousHistory.stock > 10;
+        return (
+          latestHistory.stock >= 1 &&
+          latestHistory.stock <= 10 &&
+          previousHistory.stock > 10
+        );
       });
     } else if (filter === 'monthZero') {
       const productsWithHistory = await Product.findAll({
@@ -204,6 +210,7 @@ router.get('/', async (req, res) => {
 
 // PDF indirme rotası (mevcut filtrelere uygun şekilde)
 router.get('/download-pdf', async (req, res) => {
+  console.log('PDF indirme rotasına erişildi:', req.session);
   const filter = req.query.filter;
   const search = req.query.search;
   let products = [];
@@ -221,7 +228,6 @@ router.get('/download-pdf', async (req, res) => {
     : {};
 
   try {
-    // Sadece filtrelere göre ürünleri çekiyoruz; PDF için tarih aralığı detayları sayfa içeriğinde belirtilebilir.
     if (filter === 'zero') {
       products = await Product.findAll({
         where: { stock: 0, ...searchCondition },
@@ -241,18 +247,15 @@ router.get('/download-pdf', async (req, res) => {
       });
     }
 
-    // PDF oluşturma
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     res.setHeader('Content-Disposition', 'attachment; filename="stock_report.pdf"');
     res.setHeader('Content-Type', 'application/pdf');
     doc.pipe(res);
 
-    // Türkçe karakter desteği için font yükleme
     const fontPath = path.join(__dirname, '../public/fonts/Roboto-Regular.ttf');
     doc.registerFont('Roboto', fontPath);
     doc.font('Roboto');
 
-    // Logo ekleme
     const logoPath = path.join(__dirname, '../public/logo.png');
     try {
       doc.image(logoPath, 50, 30, { width: 100 });
@@ -260,11 +263,9 @@ router.get('/download-pdf', async (req, res) => {
       console.warn('Logo dosyası bulunamadı veya yüklenemedi:', error.message);
     }
 
-    // Başlık
     doc.fontSize(20).text('Stok Raporu', { align: 'center' });
     doc.moveDown();
 
-    // Tablo başlıkları
     const tableTop = 150;
     const itemHeight = 50;
     let y = tableTop;
@@ -326,6 +327,7 @@ router.get('/download-pdf', async (req, res) => {
 
 // Ürün detayları
 router.get('/:barcode', async (req, res) => {
+  console.log('Ürün detayı rotasına erişildi:', req.session);
   try {
     const product = await Product.findOne({ where: { barcode: req.params.barcode } });
     if (!product) {
@@ -340,17 +342,21 @@ router.get('/:barcode', async (req, res) => {
 
 // Ürün stok geçmişi
 router.get('/:barcode/history', async (req, res) => {
+  console.log('Stok geçmişi rotasına erişildi:', req.session);
   try {
     const product = await Product.findOne({ where: { barcode: req.params.barcode } });
     if (!product) {
       return res.status(404).send('Ürün bulunamadı');
     }
-    // StockHistory sorgusunda product.id kullanılıyor
-    const histories = await StockHistory.findAll({ 
+    const histories = await StockHistory.findAll({
       where: { productId: product.id },
-      order: [['recordedAt', 'DESC']]
+      order: [['recordedAt', 'DESC']],
     });
-    res.render('productHistory', { title: `Stok Geçmişi: ${product.productName}`, product, histories });
+    res.render('productHistory', {
+      title: `Stok Geçmişi: ${product.productName}`,
+      product,
+      histories,
+    });
   } catch (error) {
     console.error('Stok geçmişi çekilirken hata oluştu:', error.message);
     res.status(500).send('Sunucu hatası: Stok geçmişi çekilemedi. Lütfen tekrar deneyin.');

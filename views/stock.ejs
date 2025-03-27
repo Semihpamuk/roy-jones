@@ -1,3 +1,5 @@
+<%- include('layout') %>
+
 <h2>Stok Yönetimi</h2>
 
 <form method="GET" action="/stock">
@@ -36,7 +38,7 @@
     </tr>
   </thead>
   <tbody>
-    <% if (products.length === 0) { %>
+    <% if (!products || products.length === 0) { %>
       <tr>
         <td colspan="8" style="text-align: center; padding: 20px; color: #888;">
           Ürün bulunamadı.
@@ -45,25 +47,29 @@
     <% } else { %>
       <% products.forEach(product => { %>
         <tr>
-          <td data-label="Barkod"><%= product.barcode %></td>
-          <td data-label="Ürün İsmi"><%= product.productName %></td>
-          <td data-label="Model Kodu"><%= product.productMainId %></td>
-          <td data-label="Renk"><%= product.color %></td>
-          <td data-label="Beden"><%= product.size %></td>
+          <td data-label="Barkod"><%= product.barcode || 'N/A' %></td>
+          <td data-label="Ürün İsmi"><%= product.productName || 'N/A' %></td>
+          <td data-label="Model Kodu"><%= product.productMainId || 'N/A' %></td>
+          <td data-label="Renk"><%= product.color || 'N/A' %></td>
+          <td data-label="Beden"><%= product.size || 'N/A' %></td>
           <td data-label="Ürün Resmi">
-            <% if(product.image) { %>
-              <img src="<%= product.image %>" alt="<%= product.productName %>" width="50">
+            <% if (product.image) { %>
+              <img src="<%= product.image %>" alt="<%= product.productName || 'Ürün' %>" width="50">
             <% } else { %>
               N/A
             <% } %>
           </td>
-          <td data-label="Stok"><%= product.stock %></td>
-          <td data-label="Detay"><a href="/stock/<%= product.barcode %>">Detay</a></td>
+          <td data-label="Stok"><%= product.stock !== undefined ? product.stock : 'N/A' %></td>
+          <td data-label="Detay"><a href="/stock/<%= product.barcode || '#' %>">Detay</a></td>
         </tr>
       <% }); %>
     <% } %>
   </tbody>
 </table>
+
+<script>
+  console.log('Stock sayfası yüklendi. Ürün sayısı:', <%= products ? products.length : 0 %>);
+</script>
 
 <style>
   h2 {

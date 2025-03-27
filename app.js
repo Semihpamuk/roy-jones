@@ -14,36 +14,63 @@ app.use(
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],      imgSrc: ["'self'", "data:", "https://cdn.dsmcdn.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https://cdn.dsmcdn.com"],
       connectSrc: ["'self'"],
-      fontSrc: ["'self'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"], // Font dosyaları için      objectSrc: ["'none'"],
+      fontSrc: ["'self'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+      objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     },
   })
 );
 
-// Redis kullanımı (varsa)
-let sessionStore;
-if (process.env.REDIS_URL) {
-  const RedisStore = require('connect-redis')(session);
-  const redis = require('redis');
-  const redisClient = redis.createClient({ url: process.env.REDIS_URL });
-  redisClient.connect().catch(console.error);
-  sessionStore = new RedisStore({ client: redisClient });
-}
+// Oturum yönetimi (MemoryStore kullanıyoruz, Redis için yorum satırına alınmış kod bırakıyorum)
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production', // HTTPS için true, yerel test için false
+      maxAge: 24 * 60 * 60 * 1000 // 24 saatlik oturum süresi
+    }
+  })
+);
 
-// Oturum yönetimi
-app.use(session({
-  store: sessionStore,
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === 'production' }
-}));
+// Redis kullanımı (gelecekte kullanmak isterseniz)
+// let sessionStore;
+// if (process.env.REDIS_URL) {
+//   const RedisStore = require('connect-redis')(session);
+//   const redis = require('redis');
+//   const redisClient = redis.createClient({ url: process.env.REDIS_URL });
+//   redisClient.connect().catch(console.error);
+//   sessionStore = new RedisStore({ client: redisClient });
+//   app.use(session({
+//     store: sessionStore,
+//     secret: process.env.SESSION_SECRET || 'your-secret-key',
+//     resave: false,
+//     saveUninitialized: false,
+//     cookie: { secure: process.env.NODE_ENV === 'production' }
+//   }));
+// }
 
-// Middleware: oturum bilgisini şablonlara aktarıyoruz.
+// Middleware: oturum bilgisini şablonlara aktarıyoruz ve log ekliyoruz
 app.use((req, res, next) => {
+  console.log('Oturum durumu:', req.session);
   res.locals.isAuthenticated = req.session.isAuthenticated;
+  next();
+});
+
+// Middleware: oturum kontrolü ve log ekleme
+app.use((req, res, next) => {
+  console.log(`Rota: ${req.path}, isAuthenticated: ${req.session.isAuthenticated}`);
+  if (req.path === '/login' || req.path === '/logout' || req.path === '/register') {
+    return next();
+  }
+  if (!req.session.isAuthenticated) {
+    console.log('Yetkisiz erişim, /login sayfasına yönlendiriliyor');
+    return res.redirect('/login');
+  }
   next();
 });
 
@@ -60,17 +87,6 @@ app.set('layout', 'layout');
 const stockRouter = require('./routes/stock');
 const authRouter = require('./routes/auth');
 
-// Oturum kontrolü: /login, /logout, /register rotalarına izin verilir
-app.use((req, res, next) => {
-  if (req.path === '/login' || req.path === '/logout' || req.path === '/register') {
-    return next();
-  }
-  if (!req.session.isAuthenticated) {
-    return res.redirect('/login');
-  }
-  next();
-});
-
 app.use('/stock', stockRouter);
 app.use('/', authRouter);
 
@@ -79,7 +95,7 @@ app.get('/', (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Genel hata:', err.stack);
   res.status(500).send('Bir hata oluştu!');
 });
 
