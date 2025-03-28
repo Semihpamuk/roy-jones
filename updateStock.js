@@ -30,26 +30,20 @@ const syncProducts = async () => {
       const response = await axios.get(url, { headers });
       console.log(`Sayfa ${page} - Ham API Yanıtı:`, JSON.stringify(response.data, null, 2));
 
-      // Yeni yapı: result altında items varsa, oradan alıyoruz.
       let products = [];
       if (response.data.result && Array.isArray(response.data.result.items)) {
         products = response.data.result.items;
-        console.log(`Sayfa ${page} - API yanıtı result.items dizisi:`, products);
         totalPages = response.data.result.totalPages || 1;
       } else if (Array.isArray(response.data.content)) {
         products = response.data.content;
-        console.log(`Sayfa ${page} - API yanıtı content dizisi:`, products);
         totalPages = response.data.totalPages || 1;
       } else if (Array.isArray(response.data)) {
         products = response.data;
-        console.log(`Sayfa ${page} - API yanıtı doğrudan dizi:`, products);
       } else if (response.data && response.data.items) {
         products = response.data.items;
-        console.log(`Sayfa ${page} - API yanıtında items anahtarı bulundu:`, products);
         totalPages = response.data.totalPages || 1;
       } else if (response.data && response.data.products) {
         products = response.data.products;
-        console.log(`Sayfa ${page} - API yanıtında products anahtarı bulundu:`, products);
         totalPages = response.data.totalPages || 1;
       } else {
         throw new Error('API yanıtı beklenen yapıda değil: Ürün verisi bulunamadı.');
@@ -57,7 +51,6 @@ const syncProducts = async () => {
 
       allProducts = allProducts.concat(products);
       console.log(`Sayfa ${page} - Toplam ${products.length} ürün çekildi. Şu ana kadar toplam: ${allProducts.length}`);
-
       page += 1;
       hasMorePages = page < totalPages && products.length > 0;
     }
@@ -67,34 +60,81 @@ const syncProducts = async () => {
     for (const product of allProducts) {
       console.log('İşlenen ürün (ham veri):', JSON.stringify(product, null, 2));
 
-      // Hem "title" hem de "productName" alanlarını kontrol ediyoruz
-      const productTitle = product.title || product.productName;
-      if (!product.barcode || !productTitle || product.quantity === undefined) {
-        console.warn(`Gerekli alanlar eksik, bu ürün atlanıyor: barcode=${product.barcode}, title=${product.title}, productName=${product.productName}, quantity=${product.quantity}`);
+      // Dokümantasyona göre zorunlu alanlar: barcode, title, productMainId, quantity, stockCode
+      const barcode = product.barcode;
+      const title = product.title || product.productName;
+      const productMainId = product.productMainId;
+      const quantity = product.quantity;
+      const stockCode = product.stockCode;
+      
+      if (!barcode || !title || quantity === undefined || !productMainId || !stockCode) {
+        console.warn(`Gerekli alanlar eksik, ürün atlanıyor: barcode=${barcode}, title=${product.title}, productMainId=${productMainId}, quantity=${quantity}, stockCode=${stockCode}`);
         continue;
       }
 
-      const stockValue = parseInt(product.quantity, 10) || 0;
-      console.log(`Ürün: ${product.barcode}, Çekilen quantity: ${product.quantity}, Hesaplanan stockValue: ${stockValue}`);
+      const stockValue = parseInt(quantity, 10) || 0;
+      console.log(`Ürün: ${barcode}, quantity: ${quantity}, Hesaplanan stok: ${stockValue}`);
 
+      // Renk bilgisini attributeName üzerinden belirleyelim (örn. "renk" içeren)
       let color = 'Bilinmiyor';
-      const colorAttribute = product.attributes?.find(attr => attr.attributeId === 47);
-      if (colorAttribute && (colorAttribute.attributeValue || colorAttribute.customAttributeValue)) {
-        color = colorAttribute.attributeValue || colorAttribute.customAttributeValue;
+      if (product.attributes && Array.isArray(product.attributes)) {
+        const colorAttr = product.attributes.find(attr => 
+          attr.attributeName && attr.attributeName.toLowerCase().includes('renk')
+        );
+        if (colorAttr) {
+          color = colorAttr.attributeValue || colorAttr.customAttributeValue || color;
+        }
       }
 
-      // Veritabanında ürünün var olup olmadığını kontrol ediyoruz
-      let dbProduct = await Product.findOne({ where: { barcode: product.barcode } });
+      // Beden bilgisini attributeName üzerinden belirleyelim (örn. "beden" içeren)
+      let size = 'Bilinmiyor';
+      if (product.attributes && Array.isArray(product.attributes)) {
+        const sizeAttr = product.attributes.find(attr => 
+          attr.attributeName && attr.attributeName.toLowerCase().includes('beden')
+        );
+        if (sizeAttr && sizeAttr.attributeValue) {
+          size = sizeAttr.attributeValue;
+        }
+      }
+
+      // Dokümantasyonda yer alan diğer alanları da haritalayalım:
+      const brandId = product.brandId || null;
+      const categoryId = product.categoryId || null;
+      const dimensionalWeight = product.dimensionalWeight || null;
+      const description = product.description || null;
+      const currencyType = product.currencyType || null;
+      const listPrice = product.listPrice || null;
+      const salePrice = product.salePrice || null;
+      const vatRate = product.vatRate || null;
+      const cargoCompanyId = product.cargoCompanyId || null;
+      const shipmentAddressId = product.shipmentAddressId || null;
+      const returningAddressId = product.returningAddressId || null;
+      const image = (product.images && Array.isArray(product.images) && product.images[0] && product.images[0].url) ? product.images[0].url : null;
+
+      // Veritabanında ürünün mevcut olup olmadığını barcode ile kontrol ediyoruz
+      let dbProduct = await Product.findOne({ where: { barcode } });
 
       if (dbProduct) {
         const oldStock = dbProduct.stock;
         await dbProduct.update({
-          productName: productTitle,
-          productMainId: product.productMainId,
-          color: color,
-          size: product.attributes?.find(attr => attr.attributeId === 338)?.attributeValue || 'Bilinmiyor',
+          productName: title,
+          productMainId,
+          stockCode,
+          color,
+          size,
           stock: stockValue,
-          image: product.images?.[0]?.url || null,
+          brandId,
+          categoryId,
+          dimensionalWeight,
+          description,
+          currencyType,
+          listPrice,
+          salePrice,
+          vatRate,
+          cargoCompanyId,
+          shipmentAddressId,
+          returningAddressId,
+          image,
         });
 
         if (oldStock !== stockValue) {
@@ -107,14 +147,26 @@ const syncProducts = async () => {
         }
       } else {
         dbProduct = await Product.create({
-          id: product.id || undefined, // Eğer API'den gelen id varsa kullanılır
-          barcode: product.barcode,
-          productName: productTitle,
-          productMainId: product.productMainId,
-          color: color,
-          size: product.attributes?.find(attr => attr.attributeId === 338)?.attributeValue || 'Bilinmiyor',
+          id: product.id || undefined, // API'den gelen id varsa kullanılır
+          barcode,
+          productName: title,
+          productMainId,
+          stockCode,
+          color,
+          size,
           stock: stockValue,
-          image: product.images?.[0]?.url || null,
+          brandId,
+          categoryId,
+          dimensionalWeight,
+          description,
+          currencyType,
+          listPrice,
+          salePrice,
+          vatRate,
+          cargoCompanyId,
+          shipmentAddressId,
+          returningAddressId,
+          image,
         });
 
         await StockHistory.create({
@@ -125,13 +177,12 @@ const syncProducts = async () => {
         });
       }
 
-      console.log(`Ürün başarıyla işlendi: ${product.barcode}, Stok: ${stockValue}`);
+      console.log(`Ürün başarıyla işlendi: ${barcode}, Stok: ${stockValue}`);
     }
 
-    // Stoğu sıfır olan ürünleri logla
+    // Stoğu sıfır olan ürünleri loglayalım
     const zeroStockProducts = await Product.findAll({ where: { stock: 0 } });
     console.log('Veritabanındaki stoğu sıfır olan ürünler:', JSON.stringify(zeroStockProducts, null, 2));
-
     console.log('Ürünler başarıyla senkronize edildi.');
   } catch (error) {
     console.error('Ürün senkronizasyonu sırasında hata oluştu:', error.message);
@@ -142,7 +193,7 @@ const syncProducts = async () => {
   }
 };
 
-// Güncelleme sıklığını, config.syncInterval ile (örneğin '*/15 * * * *') çalıştırıyoruz
+// config.syncInterval ile belirlenen aralıkta çalıştırıyoruz (örneğin '*/15 * * * *')
 cron.schedule(config.syncInterval, syncProducts);
 
 module.exports = syncProducts;
