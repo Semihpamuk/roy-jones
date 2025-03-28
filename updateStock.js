@@ -1,5 +1,5 @@
 const axios = require('axios');
-const config = require('./config');
+const config = require('./config'); // config dosyanızda trendyol bilgilerini güncel endpoint ile tanımlayın
 const { Product, StockHistory } = require('./models');
 const cron = require('node-cron');
 
@@ -22,6 +22,7 @@ const syncProducts = async () => {
     let allProducts = [];
     let hasMorePages = true;
 
+    // Yeni endpoint: https://apigw.trendyol.com/integration/product/sellers/{sellerId}/products
     while (hasMorePages) {
       const url = `${config.trendyol.baseUrl}/${config.trendyol.sellerId}/products?page=${page}&size=${pageSize}`;
       console.log('API isteği gönderiliyor:', url);
@@ -48,6 +49,7 @@ const syncProducts = async () => {
       allProducts = allProducts.concat(products);
       console.log(`Sayfa ${page} - Toplam ${products.length} ürün çekildi. Şu ana kadar toplam: ${allProducts.length}`);
 
+      // Yeni endpoint için response yapınızda totalPages bilgisi varsa onu kullanın
       const totalPages = response.data.totalPages || 1;
       page += 1;
       hasMorePages = page < totalPages && products.length > 0;
@@ -58,7 +60,7 @@ const syncProducts = async () => {
     for (const product of allProducts) {
       console.log('İşlenen ürün (ham veri):', JSON.stringify(product, null, 2));
 
-      // Gerekli alanların varlığını ve değerlerini kontrol et
+      // Gerekli alanların varlığını kontrol ediyoruz: barcode, title ve quantity zorunlu
       if (!product.barcode || !product.title || product.quantity === undefined) {
         console.warn(`Gerekli alanlar eksik, bu ürün atlanıyor: barcode=${product.barcode}, title=${product.title}, quantity=${product.quantity}`);
         continue;
@@ -73,6 +75,7 @@ const syncProducts = async () => {
         color = colorAttribute.attributeValue;
       }
 
+      // Veritabanında ürün var mı kontrolü
       let dbProduct = await Product.findOne({ where: { barcode: product.barcode } });
 
       if (dbProduct) {
@@ -116,7 +119,7 @@ const syncProducts = async () => {
       console.log(`Ürün başarıyla işlendi: ${product.barcode}, Stok: ${stockValue}`);
     }
 
-    // Veritabanındaki stoğu sıfır olan ürünleri kontrol et
+    // Veritabanındaki stoğu sıfır olan ürünleri logla
     const zeroStockProducts = await Product.findAll({ where: { stock: 0 } });
     console.log('Veritabanındaki stoğu sıfır olan ürünler:', JSON.stringify(zeroStockProducts, null, 2));
 
