@@ -1,9 +1,9 @@
 module.exports = (sequelize, DataTypes) => {
   const Product = sequelize.define('Product', {
     id: {
-      type: DataTypes.STRING, // Varsayılan INTEGER yerine STRING
-      primaryKey: true,
-      allowNull: false,
+      type: DataTypes.INTEGER,    // INTEGER tipi
+      autoIncrement: true,        // Otomatik artan
+      primaryKey: true,           // Birincil anahtar
     },
     barcode: {
       type: DataTypes.STRING,
