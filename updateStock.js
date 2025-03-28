@@ -1,5 +1,5 @@
 const axios = require('axios');
-const config = require('./config'); // config dosyanızda trendyol bilgilerini güncel endpoint ile tanımlayın
+const config = require('./config'); // config.js'yi kullanıyoruz
 const { Product, StockHistory } = require('./models');
 const cron = require('node-cron');
 
@@ -21,6 +21,7 @@ const syncProducts = async () => {
     const pageSize = 100;
     let allProducts = [];
     let hasMorePages = true;
+    let totalPages = 1;
 
     // Yeni endpoint: https://apigw.trendyol.com/integration/product/sellers/{sellerId}/products
     while (hasMorePages) {
@@ -29,19 +30,27 @@ const syncProducts = async () => {
       const response = await axios.get(url, { headers });
       console.log(`Sayfa ${page} - Ham API Yanıtı:`, JSON.stringify(response.data, null, 2));
 
+      // Yeni yapı: result altında items varsa, oradan alıyoruz.
       let products = [];
-      if (Array.isArray(response.data.content)) {
+      if (response.data.result && Array.isArray(response.data.result.items)) {
+        products = response.data.result.items;
+        console.log(`Sayfa ${page} - API yanıtı result.items dizisi:`, products);
+        totalPages = response.data.result.totalPages || 1;
+      } else if (Array.isArray(response.data.content)) {
         products = response.data.content;
         console.log(`Sayfa ${page} - API yanıtı content dizisi:`, products);
+        totalPages = response.data.totalPages || 1;
       } else if (Array.isArray(response.data)) {
         products = response.data;
-        console.log(`Sayfa ${page} - API yanıtı bir dizi:`, products);
+        console.log(`Sayfa ${page} - API yanıtı doğrudan dizi:`, products);
       } else if (response.data && response.data.items) {
         products = response.data.items;
         console.log(`Sayfa ${page} - API yanıtında items anahtarı bulundu:`, products);
+        totalPages = response.data.totalPages || 1;
       } else if (response.data && response.data.products) {
         products = response.data.products;
         console.log(`Sayfa ${page} - API yanıtında products anahtarı bulundu:`, products);
+        totalPages = response.data.totalPages || 1;
       } else {
         throw new Error('API yanıtı beklenen yapıda değil: Ürün verisi bulunamadı.');
       }
@@ -49,8 +58,6 @@ const syncProducts = async () => {
       allProducts = allProducts.concat(products);
       console.log(`Sayfa ${page} - Toplam ${products.length} ürün çekildi. Şu ana kadar toplam: ${allProducts.length}`);
 
-      // Yeni endpoint için response yapınızda totalPages bilgisi varsa onu kullanın
-      const totalPages = response.data.totalPages || 1;
       page += 1;
       hasMorePages = page < totalPages && products.length > 0;
     }
@@ -60,7 +67,7 @@ const syncProducts = async () => {
     for (const product of allProducts) {
       console.log('İşlenen ürün (ham veri):', JSON.stringify(product, null, 2));
 
-      // Gerekli alanların varlığını kontrol ediyoruz: barcode, title ve quantity zorunlu
+      // Zorunlu alanları kontrol ediyoruz: barcode, title ve quantity
       if (!product.barcode || !product.title || product.quantity === undefined) {
         console.warn(`Gerekli alanlar eksik, bu ürün atlanıyor: barcode=${product.barcode}, title=${product.title}, quantity=${product.quantity}`);
         continue;
@@ -71,11 +78,11 @@ const syncProducts = async () => {
 
       let color = 'Bilinmiyor';
       const colorAttribute = product.attributes?.find(attr => attr.attributeId === 47);
-      if (colorAttribute && colorAttribute.attributeValue) {
-        color = colorAttribute.attributeValue;
+      if (colorAttribute && (colorAttribute.attributeValue || colorAttribute.customAttributeValue)) {
+        color = colorAttribute.attributeValue || colorAttribute.customAttributeValue;
       }
 
-      // Veritabanında ürün var mı kontrolü
+      // Veritabanında ürünün var olup olmadığını kontrol ediyoruz
       let dbProduct = await Product.findOne({ where: { barcode: product.barcode } });
 
       if (dbProduct) {
@@ -99,6 +106,8 @@ const syncProducts = async () => {
         }
       } else {
         dbProduct = await Product.create({
+          // Eğer API'den gelen id varsa kullanabiliriz; aksi halde Sequelize otomatik id oluşturur.
+          id: product.id || undefined,
           barcode: product.barcode,
           productName: product.title,
           productMainId: product.productMainId,
@@ -119,7 +128,7 @@ const syncProducts = async () => {
       console.log(`Ürün başarıyla işlendi: ${product.barcode}, Stok: ${stockValue}`);
     }
 
-    // Veritabanındaki stoğu sıfır olan ürünleri logla
+    // Stoğu sıfır olan ürünleri logla
     const zeroStockProducts = await Product.findAll({ where: { stock: 0 } });
     console.log('Veritabanındaki stoğu sıfır olan ürünler:', JSON.stringify(zeroStockProducts, null, 2));
 
@@ -133,7 +142,7 @@ const syncProducts = async () => {
   }
 };
 
-// Güncelleme sıklığını saat başına çekecek şekilde ayarladık: "0 * * * *"
-cron.schedule('0 * * * *', syncProducts);
+// Güncelleme sıklığını istediğiniz aralıkta (örneğin 15 dakikada bir) çalıştırmak için cron ayarı
+cron.schedule(config.syncInterval, syncProducts);
 
 module.exports = syncProducts;
