@@ -8,6 +8,9 @@ const { sequelize } = require('./models');
 
 const app = express();
 
+// Express'in proxy'yi tanıması için trust proxy ayarını yapıyoruz
+app.set('trust proxy', 1);
+
 // Helmet ile CSP'yi özel olarak yapılandırıyoruz:
 app.use(
   helmet.contentSecurityPolicy({
@@ -24,14 +27,14 @@ app.use(
   })
 );
 
-// Oturum yönetimi (MemoryStore kullanıyoruz, Redis için yorum satırına alınmış kod bırakıyorum)
+// Oturum yönetimi (MemoryStore kullanıyoruz; Redis için ek yapılandırma yorum satırında)
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production', // HTTPS için true, yerel test için false
+      secure: process.env.NODE_ENV === 'production', // Üretimde HTTPS için true, yerel testte false
       maxAge: 24 * 60 * 60 * 1000 // 24 saatlik oturum süresi
     }
   })
@@ -54,14 +57,14 @@ app.use(
 //   }));
 // }
 
-// Middleware: oturum bilgisini şablonlara aktarıyoruz ve log ekliyoruz
+// Middleware: Oturum bilgisini şablonlara aktar ve log bas
 app.use((req, res, next) => {
   console.log('Oturum durumu:', req.session);
   res.locals.isAuthenticated = req.session.isAuthenticated;
   next();
 });
 
-// Middleware: oturum kontrolü ve log ekleme
+// Middleware: Oturum kontrolü ve log ekleme
 app.use((req, res, next) => {
   console.log(`Rota: ${req.path}, isAuthenticated: ${req.session.isAuthenticated}`);
   if (req.path === '/login' || req.path === '/logout' || req.path === '/register') {
@@ -94,6 +97,7 @@ app.get('/', (req, res) => {
   res.redirect('/stock');
 });
 
+// Genel hata yakalama middleware'i
 app.use((err, req, res, next) => {
   console.error('Genel hata:', err.stack);
   res.status(500).send('Bir hata oluştu!');
