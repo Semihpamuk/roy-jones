@@ -67,9 +67,10 @@ const syncProducts = async () => {
     for (const product of allProducts) {
       console.log('İşlenen ürün (ham veri):', JSON.stringify(product, null, 2));
 
-      // Zorunlu alanları kontrol ediyoruz: barcode, title ve quantity
-      if (!product.barcode || !product.title || product.quantity === undefined) {
-        console.warn(`Gerekli alanlar eksik, bu ürün atlanıyor: barcode=${product.barcode}, title=${product.title}, quantity=${product.quantity}`);
+      // Hem "title" hem de "productName" alanlarını kontrol ediyoruz
+      const productTitle = product.title || product.productName;
+      if (!product.barcode || !productTitle || product.quantity === undefined) {
+        console.warn(`Gerekli alanlar eksik, bu ürün atlanıyor: barcode=${product.barcode}, title=${product.title}, productName=${product.productName}, quantity=${product.quantity}`);
         continue;
       }
 
@@ -88,7 +89,7 @@ const syncProducts = async () => {
       if (dbProduct) {
         const oldStock = dbProduct.stock;
         await dbProduct.update({
-          productName: product.title,
+          productName: productTitle,
           productMainId: product.productMainId,
           color: color,
           size: product.attributes?.find(attr => attr.attributeId === 338)?.attributeValue || 'Bilinmiyor',
@@ -106,10 +107,9 @@ const syncProducts = async () => {
         }
       } else {
         dbProduct = await Product.create({
-          // Eğer API'den gelen id varsa kullanabiliriz; aksi halde Sequelize otomatik id oluşturur.
-          id: product.id || undefined,
+          id: product.id || undefined, // Eğer API'den gelen id varsa kullanılır
           barcode: product.barcode,
-          productName: product.title,
+          productName: productTitle,
           productMainId: product.productMainId,
           color: color,
           size: product.attributes?.find(attr => attr.attributeId === 338)?.attributeValue || 'Bilinmiyor',
@@ -142,7 +142,7 @@ const syncProducts = async () => {
   }
 };
 
-// Güncelleme sıklığını istediğiniz aralıkta (örneğin 15 dakikada bir) çalıştırmak için cron ayarı
+// Güncelleme sıklığını, config.syncInterval ile (örneğin '*/15 * * * *') çalıştırıyoruz
 cron.schedule(config.syncInterval, syncProducts);
 
 module.exports = syncProducts;
