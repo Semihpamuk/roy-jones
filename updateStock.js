@@ -75,7 +75,7 @@ const syncProducts = async () => {
       const stockValue = parseInt(quantity, 10) || 0;
       console.log(`Ürün: ${barcode}, quantity: ${quantity}, Hesaplanan stok: ${stockValue}`);
 
-      // Renk bilgisini attributeName üzerinden belirleyelim (örn. "renk" içeren)
+      // Renk bilgisini attributeName üzerinden (küçük harf duyarlı) belirleyelim
       let color = 'Bilinmiyor';
       if (product.attributes && Array.isArray(product.attributes)) {
         const colorAttr = product.attributes.find(attr => 
@@ -86,7 +86,7 @@ const syncProducts = async () => {
         }
       }
 
-      // Beden bilgisini attributeName üzerinden belirleyelim (örn. "beden" içeren)
+      // Beden bilgisini attributeName üzerinden (küçük harf duyarlı) belirleyelim
       let size = 'Bilinmiyor';
       if (product.attributes && Array.isArray(product.attributes)) {
         const sizeAttr = product.attributes.find(attr => 
@@ -97,7 +97,7 @@ const syncProducts = async () => {
         }
       }
 
-      // Dokümantasyonda yer alan diğer alanları da haritalayalım:
+      // Dokümantasyonda yer alan diğer alanların eşleştirmesi:
       const brandId = product.brandId || null;
       const categoryId = product.categoryId || null;
       const dimensionalWeight = product.dimensionalWeight || null;
@@ -147,7 +147,7 @@ const syncProducts = async () => {
         }
       } else {
         dbProduct = await Product.create({
-          id: product.id || undefined, // API'den gelen id varsa kullanılır
+          id: product.id || undefined,
           barcode,
           productName: title,
           productMainId,
@@ -193,7 +193,7 @@ const syncProducts = async () => {
   }
 };
 
-// config.syncInterval ile belirlenen aralıkta çalıştırıyoruz (örneğin '*/15 * * * *')
+// Belirlenen aralıkta çalıştırmak için (örneğin, '*/15 * * * *')
 cron.schedule(config.syncInterval, syncProducts);
 
 module.exports = syncProducts;
