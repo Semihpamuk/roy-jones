@@ -362,5 +362,16 @@ router.get('/:barcode/history', async (req, res) => {
     res.status(500).send('Sunucu hatası: Stok geçmişi çekilemedi. Lütfen tekrar deneyin.');
   }
 });
+// Debug route: Tüm ürünleri JSON olarak döner
+router.get('/debug-products', async (req, res) => {
+  try {
+    const products = await Product.findAll();
+    console.log('Debug - Tüm Ürünler:', JSON.stringify(products, null, 2));
+    res.json(products);
+  } catch (error) {
+    console.error('Debug ürün sorgusunda hata:', error.message);
+    res.status(500).json({ error: 'Ürünler alınamadı.' });
+  }
+});
 
 module.exports = router;
