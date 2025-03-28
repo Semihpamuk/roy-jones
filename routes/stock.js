@@ -10,7 +10,7 @@ console.log('routes/stock.js: Product modeli:', Product);
 console.log('routes/stock.js: Product.findAll bir fonksiyon mu?', typeof Product.findAll === 'function');
 console.log('routes/stock.js: StockHistory modeli:', StockHistory);
 
-// Tarih aralıklarını hesaplayan yardımcı fonksiyonlar
+// Yardımcı fonksiyonlar: Tarih aralıklarını hesaplama
 const getTodayRange = () => {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -43,8 +43,21 @@ const getMonthRange = () => {
   return { start: monthStart, end: monthEnd };
 };
 
+// *** Debug Route: Dinamik route'ların üstünde yer almalı *** 
+router.get('/debug-products', async (req, res) => {
+  try {
+    const products = await Product.findAll();
+    console.log('Debug - Tüm Ürünler:', JSON.stringify(products, null, 2));
+    res.json(products);
+  } catch (error) {
+    console.error('Debug ürün sorgusunda hata:', error.message);
+    res.status(500).json({ error: 'Ürünler alınamadı.' });
+  }
+});
+
+// Ana stok listesi (filtre ve arama parametrelerine göre)
 router.get('/', async (req, res) => {
-  console.log('Stock rotasına erişildi:', req.session); // Erişim logu
+  console.log('Stock rotasına erişildi:', req.session);
   const filter = req.query.filter;
   const search = req.query.search;
   let products = [];
@@ -82,34 +95,28 @@ router.get('/', async (req, res) => {
       });
     } else if (filter === 'todayOneToTen') {
       const productsWithHistory = await Product.findAll({
-        include: [
-          {
-            model: StockHistory,
-            where: { recordedAt: { [Op.between]: [todayRange.start, todayRange.end] } },
-            required: true,
-          },
-        ],
+        include: [{
+          model: StockHistory,
+          where: { recordedAt: { [Op.between]: [todayRange.start, todayRange.end] } },
+          required: true,
+        }],
       });
       products = productsWithHistory.filter(product => {
         const histories = product.StockHistories;
         if (histories.length < 2) return false;
         const latestHistory = histories[histories.length - 1];
         const previousHistory = histories[histories.length - 2];
-        return (
-          latestHistory.stock >= 1 &&
-          latestHistory.stock <= 10 &&
-          previousHistory.stock > 10
-        );
+        return (latestHistory.stock >= 1 &&
+                latestHistory.stock <= 10 &&
+                previousHistory.stock > 10);
       });
     } else if (filter === 'todayZero') {
       const productsWithHistory = await Product.findAll({
-        include: [
-          {
-            model: StockHistory,
-            where: { recordedAt: { [Op.between]: [todayRange.start, todayRange.end] } },
-            required: true,
-          },
-        ],
+        include: [{
+          model: StockHistory,
+          where: { recordedAt: { [Op.between]: [todayRange.start, todayRange.end] } },
+          required: true,
+        }],
       });
       products = productsWithHistory.filter(product => {
         const histories = product.StockHistories;
@@ -120,34 +127,28 @@ router.get('/', async (req, res) => {
       });
     } else if (filter === 'weekOneToTen') {
       const productsWithHistory = await Product.findAll({
-        include: [
-          {
-            model: StockHistory,
-            where: { recordedAt: { [Op.between]: [weekRange.start, weekRange.end] } },
-            required: true,
-          },
-        ],
+        include: [{
+          model: StockHistory,
+          where: { recordedAt: { [Op.between]: [weekRange.start, weekRange.end] } },
+          required: true,
+        }],
       });
       products = productsWithHistory.filter(product => {
         const histories = product.StockHistories;
         if (histories.length < 2) return false;
         const latestHistory = histories[histories.length - 1];
         const previousHistory = histories[histories.length - 2];
-        return (
-          latestHistory.stock >= 1 &&
-          latestHistory.stock <= 10 &&
-          previousHistory.stock > 10
-        );
+        return (latestHistory.stock >= 1 &&
+                latestHistory.stock <= 10 &&
+                previousHistory.stock > 10);
       });
     } else if (filter === 'weekZero') {
       const productsWithHistory = await Product.findAll({
-        include: [
-          {
-            model: StockHistory,
-            where: { recordedAt: { [Op.between]: [weekRange.start, weekRange.end] } },
-            required: true,
-          },
-        ],
+        include: [{
+          model: StockHistory,
+          where: { recordedAt: { [Op.between]: [weekRange.start, weekRange.end] } },
+          required: true,
+        }],
       });
       products = productsWithHistory.filter(product => {
         const histories = product.StockHistories;
@@ -158,34 +159,28 @@ router.get('/', async (req, res) => {
       });
     } else if (filter === 'monthOneToTen') {
       const productsWithHistory = await Product.findAll({
-        include: [
-          {
-            model: StockHistory,
-            where: { recordedAt: { [Op.between]: [monthRange.start, monthRange.end] } },
-            required: true,
-          },
-        ],
+        include: [{
+          model: StockHistory,
+          where: { recordedAt: { [Op.between]: [monthRange.start, monthRange.end] } },
+          required: true,
+        }],
       });
       products = productsWithHistory.filter(product => {
         const histories = product.StockHistories;
         if (histories.length < 2) return false;
         const latestHistory = histories[histories.length - 1];
         const previousHistory = histories[histories.length - 2];
-        return (
-          latestHistory.stock >= 1 &&
-          latestHistory.stock <= 10 &&
-          previousHistory.stock > 10
-        );
+        return (latestHistory.stock >= 1 &&
+                latestHistory.stock <= 10 &&
+                previousHistory.stock > 10);
       });
     } else if (filter === 'monthZero') {
       const productsWithHistory = await Product.findAll({
-        include: [
-          {
-            model: StockHistory,
-            where: { recordedAt: { [Op.between]: [monthRange.start, monthRange.end] } },
-            required: true,
-          },
-        ],
+        include: [{
+          model: StockHistory,
+          where: { recordedAt: { [Op.between]: [monthRange.start, monthRange.end] } },
+          required: true,
+        }],
       });
       products = productsWithHistory.filter(product => {
         const histories = product.StockHistories;
@@ -208,7 +203,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// PDF indirme rotası (mevcut filtrelere uygun şekilde)
+// PDF indirme rotası (filtreye uygun şekilde)
 router.get('/download-pdf', async (req, res) => {
   console.log('PDF indirme rotasına erişildi:', req.session);
   const filter = req.query.filter;
@@ -229,22 +224,13 @@ router.get('/download-pdf', async (req, res) => {
 
   try {
     if (filter === 'zero') {
-      products = await Product.findAll({
-        where: { stock: 0, ...searchCondition },
-      });
+      products = await Product.findAll({ where: { stock: 0, ...searchCondition } });
     } else if (filter === 'oneToTen') {
-      products = await Product.findAll({
-        where: { stock: { [Op.between]: [1, 10] }, ...searchCondition },
-      });
+      products = await Product.findAll({ where: { stock: { [Op.between]: [1, 10] }, ...searchCondition } });
     } else if (filter === 'highest') {
-      products = await Product.findAll({
-        where: searchCondition,
-        order: [['stock', 'DESC']],
-      });
+      products = await Product.findAll({ where: searchCondition, order: [['stock', 'DESC']] });
     } else {
-      products = await Product.findAll({
-        where: searchCondition,
-      });
+      products = await Product.findAll({ where: searchCondition });
     }
 
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -325,22 +311,7 @@ router.get('/download-pdf', async (req, res) => {
   }
 });
 
-// Ürün detayları
-router.get('/:barcode', async (req, res) => {
-  console.log('Ürün detayı rotasına erişildi:', req.session);
-  try {
-    const product = await Product.findOne({ where: { barcode: req.params.barcode } });
-    if (!product) {
-      return res.status(404).send('Ürün bulunamadı');
-    }
-    res.render('productDetail', { title: `Ürün Detayı: ${product.productName}`, product });
-  } catch (error) {
-    console.error('Ürün detayı çekilirken hata oluştu:', error.message);
-    res.status(500).send('Sunucu hatası: Ürün detayı çekilemedi. Lütfen tekrar deneyin.');
-  }
-});
-
-// Ürün stok geçmişi
+// Ürün stok geçmişi rotası (daha spesifik, dinamik route’dan önce tanımlanabilir)
 router.get('/:barcode/history', async (req, res) => {
   console.log('Stok geçmişi rotasına erişildi:', req.session);
   try {
@@ -362,15 +333,19 @@ router.get('/:barcode/history', async (req, res) => {
     res.status(500).send('Sunucu hatası: Stok geçmişi çekilemedi. Lütfen tekrar deneyin.');
   }
 });
-// Debug route: Tüm ürünleri JSON olarak döner
-router.get('/debug-products', async (req, res) => {
+
+// Ürün detayı rotası (bu rotayı en son tanımlıyoruz, çünkü :barcode dinamik parametre yakalayıcıdır)
+router.get('/:barcode', async (req, res) => {
+  console.log('Ürün detayı rotasına erişildi:', req.session);
   try {
-    const products = await Product.findAll();
-    console.log('Debug - Tüm Ürünler:', JSON.stringify(products, null, 2));
-    res.json(products);
+    const product = await Product.findOne({ where: { barcode: req.params.barcode } });
+    if (!product) {
+      return res.status(404).send('Ürün bulunamadı');
+    }
+    res.render('productDetail', { title: `Ürün Detayı: ${product.productName}`, product });
   } catch (error) {
-    console.error('Debug ürün sorgusunda hata:', error.message);
-    res.status(500).json({ error: 'Ürünler alınamadı.' });
+    console.error('Ürün detayı çekilirken hata oluştu:', error.message);
+    res.status(500).send('Sunucu hatası: Ürün detayı çekilemedi. Lütfen tekrar deneyin.');
   }
 });
 
